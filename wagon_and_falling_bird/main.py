@@ -2,8 +2,17 @@ import pygame
 from ball import Ball
 from random import randint
 
+pygame.mixer.pre_init(44100, -16, 1, 512) # важно прописать до pygame.init()
 pygame.init()
 pygame.time.set_timer(pygame.USEREVENT, 1400)
+
+#
+pygame.mixer.music.load('sounds/bird.mp3')
+pygame.mixer.music.play(-1)
+
+# отдельная дорожка
+SOUND_CATCH = pygame.mixer.Sound('sounds/catch.ogg')
+
 
 BLACK = (0, 0, 0)
 
@@ -49,19 +58,10 @@ def collideBalls():
     global game_score
     for ball in FALLING_BALLS:
         if CART_RECT.collidepoint(ball.rect.center):
-            #  s_catch.play()
+            SOUND_CATCH.play()
             game_score += ball.score
             ball.kill()
 
-
-def handle_quit(event):
-    global RUNNING
-    if event.type == pygame.QUIT:
-        RUNNING = False
-
-
-    if event.type == pygame.KEYDOWN and event.key == pygame.K_q:
-        RUNNING = False
 
 
 
@@ -79,8 +79,17 @@ def draw_window():
     pygame.display.update()
 
 
+def handle_quit(event):
+    global RUNNING
+    if event.type == pygame.QUIT:
+        RUNNING = False
+
+    if event.type == pygame.KEYDOWN and event.key == pygame.K_q:
+        RUNNING = False
+
 
 def handle_event():
+    global RUNNING
     for event in pygame.event.get():
         handle_quit(event)
         if event.type == pygame.USEREVENT:
@@ -97,10 +106,12 @@ def handle_event():
         CART_RECT.x += CART_SPEED
         if CART_RECT.x > WIDTH - CART_RECT.width:
             CART_RECT.x = WIDTH - CART_RECT.width
+    elif keys[pygame.K_q]:
+        RUNNING = False
+
     collideBalls()
 
     FALLING_BALLS.update(HEIGHT)
-
 
 
 if __name__ == '__main__':
