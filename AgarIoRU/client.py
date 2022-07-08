@@ -6,7 +6,7 @@ import pygame
 SERVER_IP = 'localhost'
 MAIN_PORT = 10000
 
-WIDTH_WINDOW, HEIGHT_WINDOW = 1500, 900
+WIDTH_WINDOW, HEIGHT_WINDOW = 1200, 800
 colours = {'0': (255, 255, 0), '1': (255, 0, 0), '2': (0, 255, 0), '3': (0, 255, 255), '4': (128, 0, 128)}
 MY_NAME = 'Naumtsev'
 GRID_COLOUR = (150, 150, 150)
