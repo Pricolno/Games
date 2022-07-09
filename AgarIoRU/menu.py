@@ -47,8 +47,8 @@ def change_name(SETTINGS):
         change_name.BUTTON_INPUT_NAME = InputBox(x=SETTINGS['WIDTH_WINDOW'] // 4, y=5 * MARGIN_HEIGHT,
                                                  w=round(SETTINGS['WIDTH_WINDOW'] * 3 / 4),
                                                  h=MARGIN_HEIGHT,
-                                                 COLOR_INACTIVE_='BLACK',
-                                                 COLOR_ACTIVE_='GREEN',
+                                                 COLOR_INACTIVE_=(255, 117, 20),
+                                                 COLOR_ACTIVE_=(200, 162, 200),
                                                  FONT_=get_font(75)
                                                  )
 
@@ -63,7 +63,12 @@ def change_name(SETTINGS):
         button.update(SETTINGS['SCREEN'])
 
     for event in pygame.event.get():
-        change_name.BUTTON_INPUT_NAME.handle_event(event)
+        new_name = change_name.BUTTON_INPUT_NAME.handle_event(event)
+        if new_name is not None and new_name != '':
+            # отправить серверу о просьбе поменять имя
+            print("REQUEST: NEW_NAME={0}".format(new_name))
+            SETTINGS['USER'].sock.send(('?' + new_name + '?').encode())
+
 
         if event.type == pygame.QUIT:
             SETTINGS['SERVER_WORK'] = False

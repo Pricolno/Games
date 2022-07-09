@@ -12,8 +12,7 @@ SETTINGS = {'WIDTH_WINDOW': 1500,
             'OPEN_OPTIONS': False,
             'SCREEN': None,
             'SERVER_WORK': True,
-            'USER': None,
-
+            'USER': None
 
             }
 
@@ -23,28 +22,15 @@ SERVER_IP = 'localhost'
 MAIN_PORT = 10000
 
 colours = {'0': (255, 255, 0), '1': (255, 0, 0), '2': (0, 255, 0), '3': (0, 255, 255), '4': (128, 0, 128)}
-MY_NAME = 'Naumtsev'
+
 GRID_COLOUR = (150, 150, 150)
+START_MY_NAME = 'NAUMTSEV'
 
 # создание окна игры
 pygame.init()
 SETTINGS['SCREEN'] = pygame.display.set_mode((SETTINGS['WIDTH_WINDOW'], SETTINGS['HEIGHT_WINDOW']))
 pygame.display.set_caption('Agario.RU')
 
-# подключение к серверу
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-sock.connect((SERVER_IP, MAIN_PORT))
-
-
-# отправляем серверу свой ник и размеры окна
-sock.send(('.' + MY_NAME + ' ' + str(SETTINGS['WIDTH_WINDOW']) + ' ' + str(SETTINGS['HEIGHT_WINDOW']) + '.').encode())
-
-# получаем свой размер и цвет
-data = sock.recv(64).decode()
-
-# подтверждаем получение
-sock.send('!'.encode())
 
 class User:
     def __init__(self, my_name_, sock_, user_data):
@@ -80,7 +66,7 @@ class User:
             pygame.draw.circle(SETTINGS['SCREEN'], colours[self.colour],
                                (SETTINGS['WIDTH_WINDOW'] // 2, SETTINGS['HEIGHT_WINDOW'] // 2), self.r)
 
-            write_name(SETTINGS['WIDTH_WINDOW'] // 2, SETTINGS['HEIGHT_WINDOW'] // 2, self.r, MY_NAME)
+            write_name(SETTINGS['WIDTH_WINDOW'] // 2, SETTINGS['HEIGHT_WINDOW'] // 2, self.r, self.name)
 
 
 
@@ -127,6 +113,22 @@ def find_correct_data_str(mess):
             return res
     return ''
 
+# ****?name?****
+# return (property, data_without_property)
+def find_property(data):
+    open_br = None
+    for i in range(len(data)):
+        if data[i] == '?' and open_br is not None:
+            close_br = i
+            #print("FIND_PROPERTY: data={0}, open_br={1}, close_br={2}".format(data, open_br, close_br))
+            prop = data[open_br + 1:close_br]
+            other = data[:open_br] + data[close_br + 1:]
+            return prop, other
+
+        if data[i] == '?':
+            open_br = i
+    return '', data
+
 
 def write_name(x, y, r, name):
     font = pygame.font.Font(None, r)
@@ -151,7 +153,23 @@ def draw_opponents(data):
             write_name(x, y, r, opp[4])
 
 
-SETTINGS['USER'] = User(MY_NAME, sock, data)
+# подключение к серверу
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+sock.connect((SERVER_IP, MAIN_PORT))
+
+
+# отправляем серверу свой ник и размеры окна
+sock.send(('.' + START_MY_NAME + ' ' + str(SETTINGS['WIDTH_WINDOW']) + ' ' + str(SETTINGS['HEIGHT_WINDOW']) + '.').encode())
+
+# получаем свой размер и цвет
+data = sock.recv(64).decode()
+
+# подтверждаем получение
+sock.send('!'.encode())
+
+SETTINGS['USER'] = User(START_MY_NAME, sock, data)
+
 
 
 grid = Grid(SETTINGS['SCREEN'])
@@ -204,11 +222,18 @@ while SETTINGS['SERVER_WORK']:
         SETTINGS['SERVER_WORK'] = False
         continue
     data = data.decode()
-    #if data
+    propp, move_data = find_property(data)
+    if '?' in data:
+        print(data + " | " + propp + " | " + move_data)
+    # проверка на обновление характеристик (не позициионки)
+    if propp != '':
+        print("Пришло новое имя: " + propp)
+        SETTINGS['USER'].name = propp
 
-    parametrs = find_correct_data_str(data).split(',')
 
-    # обработка сообщения с сервера
+    parametrs = find_correct_data_str(move_data).split(',')
+
+    # обработка сообщения с сервера (движение)
     if parametrs != ['']:
         parametrs_for_user = list(map(int, parametrs[0].split(' ')))
         #print("PARAMETR_FOR_USER: " + str(parametrs_for_user))

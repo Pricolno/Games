@@ -245,6 +245,16 @@ while server_work:
                     player.r = START_PLAYER_SIZE
                     player.move_to_new_place()
 
+                # обновление имени (цвет и т.д.)
+                if data[0] == '?' and data[-1] == '?':
+                    print("GET ?: data={0}".format(data))
+                    new_name = data[1:-1]
+                    player.name = new_name
+
+
+                    player.conn.send(("?" + new_name + "?").encode())
+
+
 
                 if data[0] == '!':  # пришло сообщение о готовности к диалогу
                     player.ready = True
@@ -256,6 +266,7 @@ while server_work:
                     else:  # пришел курсор (направелние)
                         data = find_correct_data(data)
                         player.change_speed(data)
+
 
             except:
                 pass

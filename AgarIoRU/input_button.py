@@ -17,6 +17,7 @@ class InputBox:
         self.active = False
 
     def handle_event(self, event):
+        result = None
         if event.type == pg.MOUSEBUTTONDOWN:
 
 
@@ -35,6 +36,7 @@ class InputBox:
             if self.active:
                 if event.key == pg.K_RETURN:
                     print("Юзер ввел: {0}".format(self.text))
+                    result = self.text
                     self.text = ''
                 elif event.key == pg.K_BACKSPACE:
                     self.text = self.text[:-1]
@@ -42,6 +44,7 @@ class InputBox:
                     self.text += event.unicode
                 # Re-render the text.
                 self.txt_surface = self.font.render(self.text, True, self.color)
+        return result
 
     def update(self):
         # Resize the box if the text is too long.
