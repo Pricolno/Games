@@ -9,28 +9,66 @@ SETTINGS = {'WIDTH_WINDOW': 1500,
             'OPEN_MENU': False,
             'OPEN_OPTIONS': False,
             'SCREEN': None,
-            'SERVER_WORK': True
+            'SERVER_WORK': True,
+            'USER': None
             }
 
-# SERVER_IP = 'localhost'
-SERVER_IP = '45.10.245.3'
+SERVER_IP = 'localhost'
+# SERVER_IP = '45.10.245.3'
 
 MAIN_PORT = 10000
-
 
 colours = {'0': (255, 255, 0), '1': (255, 0, 0), '2': (0, 255, 0), '3': (0, 255, 255), '4': (128, 0, 128)}
 MY_NAME = 'Naumtsev'
 GRID_COLOUR = (150, 150, 150)
 
+# создание окна игры
+pygame.init()
+SETTINGS['SCREEN'] = pygame.display.set_mode((SETTINGS['WIDTH_WINDOW'], SETTINGS['HEIGHT_WINDOW']))
+pygame.display.set_caption('Agario.RU')
+
+# подключение к серверу
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+sock.connect((SERVER_IP, MAIN_PORT))
+
+
+# отправляем серверу свой ник и размеры окна
+sock.send(('.' + MY_NAME + ' ' + str(SETTINGS['WIDTH_WINDOW']) + ' ' + str(SETTINGS['HEIGHT_WINDOW']) + '.').encode())
+
+# получаем свой размер и цвет
+data = sock.recv(64).decode()
+
+# подтверждаем получение
+sock.send('!'.encode())
 
 class User:
-    def __init__(self, user_data):
+    def __init__(self, sock_, user_data):
         user_data = user_data.split()
         self.r = int(user_data[0])
         self.colour = user_data[1]
+        self.time_after_death = 0
+        self.sock = sock_
 
     def update(self, new_r):
         self.r = new_r
+        if self.r == 0:
+            self.time_after_death = min(self.time_after_death + 1, 1000)
+
+    def need_open_menu(self):
+        return self.time_after_death >= 200
+
+    def reborn(self):
+        self.send_server_ready()
+        self.time_after_death = 0
+
+    def is_alive(self):
+        return not self.r == 0
+
+    # сервер получил все данные и я готов начать играть
+    def send_server_ready(self):
+        # переродиться а данные о нас у него уже есть
+        self.sock.send('#'.encode())
 
     def draw(self):
         if self.r != 0:
@@ -38,6 +76,7 @@ class User:
                                (SETTINGS['WIDTH_WINDOW'] // 2, SETTINGS['HEIGHT_WINDOW'] // 2), self.r)
 
             write_name(SETTINGS['WIDTH_WINDOW'] // 2, SETTINGS['HEIGHT_WINDOW'] // 2, self.r, MY_NAME)
+
 
 
 class Grid:
@@ -68,24 +107,7 @@ class Grid:
                              1)
 
 
-# создание окна игры
-pygame.init()
-SETTINGS['SCREEN'] = pygame.display.set_mode((SETTINGS['WIDTH_WINDOW'], SETTINGS['HEIGHT_WINDOW']))
-pygame.display.set_caption('Agario.RU')
 
-# подключение к серверу
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-sock.connect((SERVER_IP, MAIN_PORT))
-
-# отправляем серверу свой ник и размеры окна
-sock.send(('.' + MY_NAME + ' ' + str(SETTINGS['WIDTH_WINDOW']) + ' ' + str(SETTINGS['HEIGHT_WINDOW']) + '.').encode())
-
-# получаем свой размер и цвет
-data = sock.recv(64).decode()
-
-# подтверждаем получение
-sock.send('!'.encode())
 
 
 def find_correct_data_str(mess):
@@ -109,8 +131,8 @@ def write_name(x, y, r, name):
 
 
 def draw_opponents(data):
-    #print("DATA:", end="")
-    #pprint(data)
+    # print("DATA:", end="")
+    # pprint(data)
     for opp_str in data:
         opp = opp_str.split(' ')
 
@@ -124,7 +146,9 @@ def draw_opponents(data):
             write_name(x, y, r, opp[4])
 
 
-user = User(data)
+SETTINGS['USER'] = User(sock, data)
+
+
 grid = Grid(SETTINGS['SCREEN'])
 
 v_dir = (0, 0)
@@ -141,13 +165,20 @@ while SETTINGS['SERVER_WORK']:
             SETTINGS['OPEN_MAIN_MENU'] = True
             # двойное нажатие проблема !
 
+    if SETTINGS['USER'].need_open_menu():
+        if not SETTINGS['OPEN_MENU']:
+            SETTINGS['OPEN_MENU'] = True
+            SETTINGS['OPEN_MAIN_MENU'] = True
+
+
+
     if not SETTINGS['OPEN_MENU']:
         # считаем положение мыши игрока
         if pygame.mouse.get_focused():
             pos = pygame.mouse.get_pos()
             v_dir = (pos[0] - SETTINGS['WIDTH_WINDOW'] // 2, pos[1] - SETTINGS['HEIGHT_WINDOW'] // 2)
 
-            if (v_dir[0]) ** 2 + (v_dir[1]) ** 2 <= user.r ** 2:
+            if (v_dir[0]) ** 2 + (v_dir[1]) ** 2 <= SETTINGS['USER'].r ** 2:
                 v_dir = (0, 0)
 
         # отправляем вектор желаемого направления движения,
@@ -157,7 +188,7 @@ while SETTINGS['SERVER_WORK']:
             message = '<' + str(v_dir[0]) + ',' + str(v_dir[1]) + '>'
             sock.send(message.encode())
 
-            #print("Направление мышки: ", v_dir)
+            # print("Направление мышки: ", v_dir)
 
     # получение нового состояния игрового поля
     try:
@@ -166,26 +197,27 @@ while SETTINGS['SERVER_WORK']:
         SETTINGS['SERVER_WORK'] = False
         continue
     data = data.decode()
-    # data = find_correct_data(data)
-    # data = data.split(',')
+    #if data
 
     parametrs = find_correct_data_str(data).split(',')
 
     # обработка сообщения с сервера
     if parametrs != ['']:
         parametrs_for_user = list(map(int, parametrs[0].split(' ')))
-        user.update(parametrs_for_user[0])
+        print("PARAMETR_FOR_USER: " + str(parametrs_for_user))
+
+        SETTINGS['USER'].update(parametrs_for_user[0])
+
         grid.update(parametrs_for_user[1], parametrs_for_user[2], parametrs_for_user[3])
 
         # Рисуем новое состояние игрового поля
         SETTINGS['SCREEN'].fill('gray25')
         grid.draw()
         draw_opponents(parametrs[1:])
-        user.draw()
+        SETTINGS['USER'].draw()
 
     if SETTINGS['OPEN_MENU']:
         main_menu(SETTINGS)
-
 
     pygame.display.update()
 pygame.quit()

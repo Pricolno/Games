@@ -76,6 +76,12 @@ class Player:
         self.speed_x = 0
         self.speed_y = 0
 
+    def move_to_new_place(self):
+        spawn = random.choice(microbes)
+        self.x = spawn.x
+        self.y = spawn.y
+        microbes.remove(spawn)
+
     def set_options(self, data):
         data = data[1:-1].split(' ')
         self.name = data[0]
@@ -232,8 +238,17 @@ while server_work:
                 data = player.conn.recv(1024)
                 data = data.decode()
 
+
+
+                if data[0] == '#':  # хотят переродиться
+                    #player.conn.send(('#' + str(START_PLAYER_SIZE) + ' ' + player.colour).encode())
+                    player.r = START_PLAYER_SIZE
+                    player.move_to_new_place()
+
+
                 if data[0] == '!':  # пришло сообщение о готовности к диалогу
                     player.ready = True
+                    print('!  :' + data)
                 else:
                     if data[0] == '.' and data[-1] == '.':  # пришло имя и размер окна игрока
                         player.set_options(data)
@@ -345,10 +360,14 @@ while server_work:
             else:
                 player.dead += 300
 
-        if (player.errors == 500) or (player.dead == 300):
-            if player.conn is not None:
-                player.conn.close()
+        if (player.conn is not None) and player.errors == 300:
+            player.conn.close()
             players.remove(player)
+            print("Удалён реальный игрок")
+        if player.dead == 300 and (player.conn is None):
+            players.remove(player)
+
+
 
     # чистим список от съеденных микробов
     for m in microbes:

@@ -19,33 +19,20 @@ BG = pygame.image.load("assets/Background.png")
 
 
 def play(SETTINGS):
-    # running = True
-    # while running:
-    PLAY_MOUSE_POS = pygame.mouse.get_pos()
+    if SETTINGS['USER'].is_alive():
+        print('PLAY and I"m allive')
+        SETTINGS['OPEN_MENU'] = False
+        SETTINGS['OPEN_MAIN_MENU'] = False
+    else:
+        print('PLAY and I"m death')
+        SETTINGS['OPEN_MAIN_MENU'] = False
+        SETTINGS['OPEN_MENU'] = False
 
-    SETTINGS['SCREEN'].fill("black")
+        SETTINGS['USER'].reborn()
 
-    PLAY_TEXT = get_font(45).render("This is the PLAY screen.", True, "White")
-    PLAY_RECT = PLAY_TEXT.get_rect(center=(SETTINGS['WIDTH_WINDOW'] // 2, MARGIN_HEIGHT))
-    SETTINGS['SCREEN'].blit(PLAY_TEXT, PLAY_RECT)
 
-    PLAY_BACK = Button(image=None, pos=(SETTINGS['WIDTH_WINDOW'] // 2, 3 * MARGIN_HEIGHT),
-                       text_input="BACK", font=get_font(75), base_color="White", hovering_color="Green")
 
-    PLAY_BACK.changeColor(PLAY_MOUSE_POS)
-    PLAY_BACK.update(SETTINGS['SCREEN'])
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if PLAY_BACK.checkForInput(PLAY_MOUSE_POS):
-                # нужно вернуться в игру
-
-                running = False
-
-        pygame.display.update()
 
 
 def options(SETTINGS):
@@ -109,9 +96,7 @@ def main_menu(SETTINGS):
                     if PLAY_BUTTON.checkForInput(MENU_MOUSE_POS):
                         # нужно вернутсья в игру
                         # или начать заново
-                        # play(SETTINGS)
-                        SETTINGS['OPEN_MENU'] = False
-                        SETTINGS['OPEN_MAIN_MENU'] = False
+                        play(SETTINGS)
 
                     if OPTIONS_BUTTON.checkForInput(MENU_MOUSE_POS):
                         SETTINGS['OPEN_OPTIONS'] = True
