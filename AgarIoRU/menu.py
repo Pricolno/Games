@@ -2,6 +2,7 @@ import pygame
 import sys
 
 from button import Button
+from input_button import InputBox
 
 pygame.init()
 
@@ -21,43 +22,97 @@ BG = pygame.image.load("assets/Background.png")
 def play(SETTINGS):
     if SETTINGS['USER'].is_alive():
         print('PLAY and I"m allive')
-        SETTINGS['OPEN_MENU'] = False
+        SETTINGS['MENU_PASSED'] = False
         SETTINGS['OPEN_MAIN_MENU'] = False
     else:
         print('PLAY and I"m death')
         SETTINGS['OPEN_MAIN_MENU'] = False
-        SETTINGS['OPEN_MENU'] = False
+        SETTINGS['MENU_PASSED'] = False
 
         SETTINGS['USER'].reborn()
 
 
+def change_name(SETTINGS):
+    OPTIONS_MOUSE_POS = pygame.mouse.get_pos()
 
+    OPTIONS_TEXT = get_font(45).render("Your name: {0}".format(SETTINGS['USER'].name), True, "Black")
+    OPTIONS_RECT = OPTIONS_TEXT.get_rect(center=(SETTINGS['WIDTH_WINDOW'] // 2, MARGIN_HEIGHT))
+    SETTINGS['SCREEN'].blit(OPTIONS_TEXT, OPTIONS_RECT)
 
+    OPTIONS_CHANGE_NAME = Button(image=None, pos=(SETTINGS['WIDTH_WINDOW'] // 2, 3 * MARGIN_HEIGHT),
+                                 text_input="WINDOW FOR INPUT", font=get_font(75), base_color="BLACK",
+                                 hovering_color="Green")
+
+    if 'BUTTON_INPUT_NAME' not in dir(change_name):
+        change_name.BUTTON_INPUT_NAME = InputBox(x=SETTINGS['WIDTH_WINDOW'] // 4, y=5 * MARGIN_HEIGHT,
+                                                 w=round(SETTINGS['WIDTH_WINDOW'] * 3 / 4),
+                                                 h=MARGIN_HEIGHT,
+                                                 COLOR_INACTIVE_='BLACK',
+                                                 COLOR_ACTIVE_='GREEN',
+                                                 FONT_=get_font(75)
+                                                 )
+
+    OPTIONS_BACK = Button(image=None, pos=(SETTINGS['WIDTH_WINDOW'] // 2, 7 * MARGIN_HEIGHT),
+                          text_input="BACK",
+                          font=get_font(75),
+                          base_color="Black",
+                          hovering_color="Green")
+
+    for button in [OPTIONS_CHANGE_NAME, OPTIONS_BACK]:
+        button.changeColor(OPTIONS_MOUSE_POS)
+        button.update(SETTINGS['SCREEN'])
+
+    for event in pygame.event.get():
+        change_name.BUTTON_INPUT_NAME.handle_event(event)
+
+        if event.type == pygame.QUIT:
+            SETTINGS['SERVER_WORK'] = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if OPTIONS_BACK.checkForInput(OPTIONS_MOUSE_POS):
+                SETTINGS['OPEN_CHANGE_NAME'] = False
+                SETTINGS['OPEN_OPTIONS'] = True
+                SETTINGS['OPTIONS_PASSED'] = False
+            if OPTIONS_CHANGE_NAME.checkForInput(OPTIONS_MOUSE_POS):
+                # input реализовать
+                pass
+
+    change_name.BUTTON_INPUT_NAME.update()
+    change_name.BUTTON_INPUT_NAME.draw(SETTINGS['SCREEN'])
 
 
 def options(SETTINGS):
     OPTIONS_MOUSE_POS = pygame.mouse.get_pos()
 
-    SETTINGS['SCREEN'].fill("white")
-
-    OPTIONS_TEXT = get_font(45).render("This is the OPTIONS screen.", True, "Black")
+    OPTIONS_TEXT = get_font(45).render("Your name: {0}".format(SETTINGS['USER'].name), True, "Black")
     OPTIONS_RECT = OPTIONS_TEXT.get_rect(center=(SETTINGS['WIDTH_WINDOW'] // 2, MARGIN_HEIGHT))
     SETTINGS['SCREEN'].blit(OPTIONS_TEXT, OPTIONS_RECT)
 
-    OPTIONS_BACK = Button(image=None, pos=(SETTINGS['WIDTH_WINDOW'] // 2, 3 * MARGIN_HEIGHT),
+    OPTIONS_CHANGE_NAME = Button(image=None, pos=(SETTINGS['WIDTH_WINDOW'] // 2, 3 * MARGIN_HEIGHT),
+                                 text_input="CHANGE NAME", font=get_font(75), base_color="BLACK",
+                                 hovering_color="Green")
+
+    OPTIONS_BACK = Button(image=None, pos=(SETTINGS['WIDTH_WINDOW'] // 2, 7 * MARGIN_HEIGHT),
                           text_input="BACK", font=get_font(75), base_color="Black", hovering_color="Green")
 
-    OPTIONS_BACK.changeColor(OPTIONS_MOUSE_POS)
-    OPTIONS_BACK.update(SETTINGS['SCREEN'])
+    if SETTINGS['OPTIONS_PASSED'] and SETTINGS['OPEN_CHANGE_NAME']:
+        change_name(SETTINGS)
+    else:
+        for button in [OPTIONS_CHANGE_NAME, OPTIONS_BACK]:
+            button.changeColor(OPTIONS_MOUSE_POS)
+            button.update(SETTINGS['SCREEN'])
 
-    #print("Я в настройках")
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            SETTINGS['SERVER_WORK'] = False
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if OPTIONS_BACK.checkForInput(OPTIONS_MOUSE_POS):
-                SETTINGS['OPEN_OPTIONS'] = False
-                SETTINGS['OPEN_MAIN_MENU'] = True
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                SETTINGS['SERVER_WORK'] = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if OPTIONS_BACK.checkForInput(OPTIONS_MOUSE_POS):
+                    SETTINGS['OPEN_OPTIONS'] = False
+                    SETTINGS['OPEN_MAIN_MENU'] = True
+                if OPTIONS_CHANGE_NAME.checkForInput(OPTIONS_MOUSE_POS):
+                    # какую ту менюшку с сменой ника вернуть
+                    SETTINGS['OPEN_CHANGE_NAME'] = True
+                    SETTINGS['OPTIONS_PASSED'] = True
+                    SETTINGS['OPEN_OPTIONS'] = False
 
 
 def main_menu(SETTINGS):
@@ -84,7 +139,7 @@ def main_menu(SETTINGS):
             button.changeColor(MENU_MOUSE_POS)
             button.update(SETTINGS['SCREEN'])
 
-    if SETTINGS['OPEN_OPTIONS']:
+    if SETTINGS['OPTIONS_PASSED'] or SETTINGS['OPEN_OPTIONS']:
         options(SETTINGS)
     else:
         for event in pygame.event.get():
@@ -104,8 +159,6 @@ def main_menu(SETTINGS):
 
                     if QUIT_BUTTON.checkForInput(MENU_MOUSE_POS):
                         SETTINGS['SERVER_WORK'] = False
-
-
 
     # pygame.display.update()
 

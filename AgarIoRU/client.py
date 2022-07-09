@@ -6,11 +6,15 @@ import pygame
 
 SETTINGS = {'WIDTH_WINDOW': 1500,
             'HEIGHT_WINDOW': 900,
-            'OPEN_MENU': False,
+            'MENU_PASSED': False,
+            'OPEN_MAIN_MENU': False,
+            'OPTIONS_PASSED': False,
             'OPEN_OPTIONS': False,
             'SCREEN': None,
             'SERVER_WORK': True,
-            'USER': None
+            'USER': None,
+
+
             }
 
 SERVER_IP = 'localhost'
@@ -43,12 +47,13 @@ data = sock.recv(64).decode()
 sock.send('!'.encode())
 
 class User:
-    def __init__(self, sock_, user_data):
+    def __init__(self, my_name_, sock_, user_data):
         user_data = user_data.split()
         self.r = int(user_data[0])
         self.colour = user_data[1]
         self.time_after_death = 0
         self.sock = sock_
+        self.name = my_name_
 
     def update(self, new_r):
         self.r = new_r
@@ -146,7 +151,7 @@ def draw_opponents(data):
             write_name(x, y, r, opp[4])
 
 
-SETTINGS['USER'] = User(sock, data)
+SETTINGS['USER'] = User(MY_NAME, sock, data)
 
 
 grid = Grid(SETTINGS['SCREEN'])
@@ -154,25 +159,27 @@ grid = Grid(SETTINGS['SCREEN'])
 v_dir = (0, 0)
 old_v_dir = (0, 0)
 
+print("Игра начинается")
 while SETTINGS['SERVER_WORK']:
-    # обработка событий
 
+
+    # обработка событий
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             SETTINGS['SERVER_WORK'] = False
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            SETTINGS['OPEN_MENU'] = True
+            SETTINGS['MENU_PASSED'] = True
             SETTINGS['OPEN_MAIN_MENU'] = True
             # двойное нажатие проблема !
 
     if SETTINGS['USER'].need_open_menu():
-        if not SETTINGS['OPEN_MENU']:
-            SETTINGS['OPEN_MENU'] = True
+        if not SETTINGS['MENU_PASSED']:
+            SETTINGS['MENU_PASSED'] = True
             SETTINGS['OPEN_MAIN_MENU'] = True
 
 
 
-    if not SETTINGS['OPEN_MENU']:
+    if not SETTINGS['MENU_PASSED']:
         # считаем положение мыши игрока
         if pygame.mouse.get_focused():
             pos = pygame.mouse.get_pos()
@@ -204,7 +211,7 @@ while SETTINGS['SERVER_WORK']:
     # обработка сообщения с сервера
     if parametrs != ['']:
         parametrs_for_user = list(map(int, parametrs[0].split(' ')))
-        print("PARAMETR_FOR_USER: " + str(parametrs_for_user))
+        #print("PARAMETR_FOR_USER: " + str(parametrs_for_user))
 
         SETTINGS['USER'].update(parametrs_for_user[0])
 
@@ -216,8 +223,10 @@ while SETTINGS['SERVER_WORK']:
         draw_opponents(parametrs[1:])
         SETTINGS['USER'].draw()
 
-    if SETTINGS['OPEN_MENU']:
+    if SETTINGS['MENU_PASSED']:
         main_menu(SETTINGS)
 
     pygame.display.update()
+
 pygame.quit()
+print("Игра завершена")
