@@ -16,3 +16,9 @@
 >Напоминание как не нужно писать код. Но есть видимая анимация!
 
 ![](./presentation/menu_first_try.jpg)
+
+## snake
+>Консольная, всем известная игра змейка. <p>
+>C++ : windows.h
+
+![](./snake_cpp_console/images/snake_start.png) 
